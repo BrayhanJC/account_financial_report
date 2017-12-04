@@ -33,8 +33,10 @@ import time
 # from tools.translate import _
 from openerp.osv import fields, osv
 from openerp.tools.translate import _
+from openerp import  api
 
-
+import logging
+_logger = logging.getLogger(__name__)
 class wizard_report(osv.osv_memory):
     _name = "wizard.report"
 
@@ -83,96 +85,75 @@ class wizard_report(osv.osv_memory):
         'target_move': 'posted',
     }
 
-    def onchange_inf_type(self, cr, uid, ids, inf_type, context=None):
-        if context is None:
-            context = {}
-        res = {'value': {}}
+    @api.onchange('inf_type')
+    def onchange_inf_type(self):
+        if self.inf_type != 'BS':
+            self.analytic_ledger = False
 
-        if inf_type != 'BS':
-            res['value'].update({'analytic_ledger': False})
 
-        return res
+    @api.onchange('columns', 'fiscalyear', 'periods')       
+    def onchange_columns(self):
 
-    def onchange_columns(self, cr, uid, ids, columns, fiscalyear, periods, context=None):
-        if context is None:
-            context = {}
-        res = {'value': {}}
+        p_obj = self.env["account.period"]
+        go = None
+        all_periods = p_obj.search([('fiscalyear_id', '=', self.fiscalyear.id), ('special', '=', False)])
 
-        p_obj = self.pool.get("account.period")
-        all_periods = p_obj.search(cr, uid, [('fiscalyear_id', '=', fiscalyear), (
-            'special', '=', False)], context=context)
-        s = set(periods[0][2])
-        t = set(all_periods)
-        go = periods[0][2] and s.issubset(t) or False
+        if self.periods:
+            s = set(self.periods[0][2])
+            t = set(all_periods)
+            go = self.periods[0][2] and s.issubset(t) or False
 
-        if columns != 'four':
-            res['value'].update({'analytic_ledger': False})
+        if self.columns != 'four':
+            self.analytic_ledger = False
 
-        if columns in ('qtr', 'thirteen'):
-            res['value'].update({'periods': all_periods})
+        if self.columns in ('qtr', 'thirteen'):
+            self.periods = all_periods
         else:
             if go:
-                res['value'].update({'periods': periods})
+                self.periods = periods
             else:
-                res['value'].update({'periods': []})
-        return res
+                self.periods = []
+    
+    @api.onchange('company_id', 'analytic_ledger')  
+    def onchange_analytic_ledger(self):
+        #bself.env.context.update('company_id' : self.company_id)
 
-    def onchange_analytic_ledger(self, cr, uid, ids, company_id, analytic_ledger, context=None):
-        if context is None:
-            context = {}
-        context['company_id'] = company_id
-        res = {'value': {}}
-        cur_id = self.pool.get('res.company').browse(
-            cr, uid, company_id, context=context).currency_id.id
-        res['value'].update({'currency_id': cur_id})
-        return res
+        cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
+        self.currency_id = cur_id
 
-    def onchange_company_id(self, cr, uid, ids, company_id, context=None):
-        if context is None:
-            context = {}
-        context['company_id'] = company_id
-        res = {'value': {}}
+    @api.onchange('company_id') 
+    def onchange_company_id(self):
 
-        if not company_id:
-            return res
+        #context['company_id'] = company_id
 
-        cur_id = self.pool.get('res.company').browse(
-            cr, uid, company_id, context=context).currency_id.id
-        fy_id = self.pool.get('account.fiscalyear').find(
-            cr, uid, context=context)
-        res['value'].update({'fiscalyear': fy_id})
-        res['value'].update({'currency_id': cur_id})
-        res['value'].update({'account_list': []})
-        res['value'].update({'periods': []})
-        res['value'].update({'afr_id': None})
-        return res
+        if self.company_id:
+            
+            cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
+            fy_id = self.env['account.fiscalyear'].find()
+            self.fiscalyear = fy_id
+            self.currency_id = cur_id
+            self.account_list = []
+            self.periods = []
+            self.afr_id = None
 
-    def onchange_afr_id(self, cr, uid, ids, afr_id, context=None):
-        if context is None:
-            context = {}
-        res = {'value': {}}
-        if not afr_id:
-            return res
-        afr_brw = self.pool.get('afr').browse(cr, uid, afr_id, context=context)
-        res['value'].update({
-                            'currency_id': afr_brw.currency_id and afr_brw.currency_id.id or afr_brw.company_id.currency_id.id})
-        res['value'].update({'inf_type': afr_brw.inf_type or 'BS'})
-        res['value'].update({'columns': afr_brw.columns or 'five'})
-        res['value'].update({
-                            'display_account': afr_brw.display_account or 'bal_mov'})
-        res['value'].update({
-                            'display_account_level': afr_brw.display_account_level or 0})
-        res['value'].update({
-                            'fiscalyear': afr_brw.fiscalyear_id and afr_brw.fiscalyear_id.id})
-        res['value'].update({'account_list': [
-                            acc.id for acc in afr_brw.account_ids]})
-        res['value'].update({'periods': [p.id for p in afr_brw.period_ids]})
-        res['value'].update({
-                            'analytic_ledger': afr_brw.analytic_ledger or False})
-        res['value'].update({'tot_check': afr_brw.tot_check or False})
-        res['value'].update({'lab_str': afr_brw.lab_str or _(
-            'Write a Description for your Summary Total')})
-        return res
+    @api.onchange('afr_id')     
+    def onchange_afr_id(self):
+
+        if self.afr_id:
+
+            afr_brw = self.env['afr'].browse(self.afr_id.id)
+            self.currency_id = afr_brw.currency_id and afr_brw.currency_id.id or afr_brw.company_id.currency_id.id
+            self.inf_type = afr_brw.inf_type or 'BS'
+            self.columns = afr_brw.columns or 'five'
+            self.display_account = afr_brw.display_account or 'bal_mov'
+            self.display_account_level = afr_brw.display_account_level or 0
+            self.fiscalyear = afr_brw.fiscalyear_id and afr_brw.fiscalyear_id.id
+            self.account_list = [acc.id for acc in afr_brw.account_ids]
+            self.periods = [p.id for p in afr_brw.period_ids]
+            self.analytic_ledger = afr_brw.analytic_ledger or False
+            self.tot_check = afr_brw.tot_check or False
+            self.lab_str = afr_brw.lab_str or _('Write a Description for your Summary Total')
+
 
     def _get_defaults(self, cr, uid, data, context=None):
         if context is None:
