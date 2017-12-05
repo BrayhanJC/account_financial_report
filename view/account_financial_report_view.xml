@@ -12,24 +12,16 @@
                 <group>
                     <group string="Company Info" >
                         <field name="company_id"  />
-                        <!-- on_change='onchange_company_id(company_id)' -->
                         <field name="currency_id"
                         domain="[('company_id','=',company_id)]"
                         attrs="{'readonly':[('analytic_ledger','=',True)]}" />
                     </group>
                     <group string="Report Info" >
-                        <field
-                            name="inf_type"
-                             />
-                             <!-- on_change='onchange_inf_type(inf_type)' -->
+                        <field name="inf_type"/>
                         <field name="columns"  />
-                        <!-- on_change='onchange_columns(columns,fiscalyear_id,period_ids)' -->
                         <field name="analytic_ledger"
-                        attrs="{'readonly':['|',('columns','!=','four'),('inf_type','!=','BS')],}"
-                         />
-                         <!-- on_change='onchange_analytic_ledger(company_id,analytic_ledger)' -->
-                        <field name="journal_ledger"
-                        attrs="{'readonly':['|',('columns','!=','four'),('inf_type','!=','BS')],}" />
+                        attrs="{'readonly':['|',('columns','!=','four'),('inf_type','!=','BS')],}"/>
+                        <field name="journal_ledger" attrs="{'readonly':['|',('columns','!=','four'),('inf_type','!=','BS')],}" />
                     </group>
                 </group>
                 <group>
@@ -41,7 +33,6 @@
                     <group string="FiscalYear Info" >
                         <field name="fiscalyear_id"
                                domain="[('company_id','=',company_id)]"/>
-                               <!-- on_change='onchange_columns(columns,fiscalyear_id,period_ids)' -->
                     </group>
                 </group>
                 <group>
@@ -116,7 +107,6 @@
             name="Account Financial Report (Templates)"
             parent="account.final_accounting_reports"
             sequence="100"
-
             action="account_financial_report_action"/>
             <!-- groups="account_financial_report.group_afreport" -->
 
