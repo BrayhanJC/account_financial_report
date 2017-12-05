@@ -53,8 +53,8 @@ set the sign conventions for the Accounts, so that you will be able to see in
 positives Values in your reports for those accounts with Accreditable nature
 where appropriate""",
     "data": [
-        # "security/security.xml",
-        # "security/ir.model.access.csv",
+        "security/security.xml",
+        "security/ir.model.access.csv",
         "view/report.xml",
         "view/wizard.xml",
         "view/company_view.xml",
