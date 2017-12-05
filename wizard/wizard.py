@@ -99,19 +99,17 @@ class wizard_report(osv.osv_memory):
 		all_periods = p_obj.search([('fiscalyear_id', '=', self.fiscalyear.id), ('special', '=', False)])
 
 		if self.periods:
-			s = set(self.periods[0][2])
+			s = set(self.periods[0])
 			t = set(all_periods)
-			go = self.periods[0][2] and s.issubset(t) or False
-
+			go = self.periods[0] and s.issubset(t) or False
 		if self.columns != 'four':
 			self.analytic_ledger = False
 
 		if self.columns in ('qtr', 'thirteen'):
+			_logger.info("por aca")
 			self.periods = all_periods
 		else:
-			if go:
-				self.periods = periods
-			else:
+			if not go:
 				self.periods = []
 	
 	@api.onchange('company_id', 'analytic_ledger')  
