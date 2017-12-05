@@ -38,241 +38,241 @@ from openerp import  api
 import logging
 _logger = logging.getLogger(__name__)
 class wizard_report(osv.osv_memory):
-    _name = "wizard.report"
+	_name = "wizard.report"
 
-    _columns = {
-        'afr_id': fields.many2one('afr', 'Custom Report', help='If you have already set a Custom Report, Select it Here.'),
-        'company_id': fields.many2one('res.company', 'Company', required=True),
-        'currency_id': fields.many2one('res.currency', 'Currency', help="Currency at which this report will be expressed. If not selected will be used the one set in the company"),
-        'inf_type': fields.selection([('BS', 'Balance Sheet'), ('IS', 'Income Statement')], 'Type', required=True),
-        'columns': fields.selection([('one', 'End. Balance'), ('two', 'Debit | Credit'), ('four', 'Initial | Debit | Credit | YTD'), ('five', 'Initial | Debit | Credit | Period | YTD'), ('qtr', "4 QTR's | YTD"), ('thirteen', '12 Months | YTD')], 'Columns', required=True),
-        'display_account': fields.selection([('all', 'All Accounts'), ('bal', 'With Balance'), ('mov', 'With movements'), ('bal_mov', 'With Balance / Movements')], 'Display accounts'),
-        'display_account_level': fields.integer('Up to level', help='Display accounts up to this level (0 to show all)'),
+	_columns = {
+		'afr_id': fields.many2one('afr', 'Custom Report', help='If you have already set a Custom Report, Select it Here.'),
+		'company_id': fields.many2one('res.company', 'Company', required=True),
+		'currency_id': fields.many2one('res.currency', 'Currency', help="Currency at which this report will be expressed. If not selected will be used the one set in the company"),
+		'inf_type': fields.selection([('BS', 'Balance Sheet'), ('IS', 'Income Statement')], 'Type', required=True),
+		'columns': fields.selection([('one', 'End. Balance'), ('two', 'Debit | Credit'), ('four', 'Initial | Debit | Credit | YTD'), ('five', 'Initial | Debit | Credit | Period | YTD'), ('qtr', "4 QTR's | YTD"), ('thirteen', '12 Months | YTD')], 'Columns', required=True),
+		'display_account': fields.selection([('all', 'All Accounts'), ('bal', 'With Balance'), ('mov', 'With movements'), ('bal_mov', 'With Balance / Movements')], 'Display accounts'),
+		'display_account_level': fields.integer('Up to level', help='Display accounts up to this level (0 to show all)'),
 
-        'account_list': fields.many2many('account.account', 'rel_wizard_account', 'account_list', 'account_id', 'Root accounts', required=True),
+		'account_list': fields.many2many('account.account', 'rel_wizard_account', 'account_list', 'account_id', 'Root accounts', required=True),
 
-        'fiscalyear': fields.many2one('account.fiscalyear', 'Fiscal year', help='Fiscal Year for this report', required=True),
-        'periods': fields.many2many('account.period', 'rel_wizard_period', 'wizard_id', 'period_id', 'Periods', help='All periods in the fiscal year if empty'),
+		'fiscalyear': fields.many2one('account.fiscalyear', 'Fiscal year', help='Fiscal Year for this report', required=True),
+		'periods': fields.many2many('account.period', 'rel_wizard_period', 'wizard_id', 'period_id', 'Periods', help='All periods in the fiscal year if empty'),
 
-        'analytic_ledger': fields.boolean('Analytic Ledger', help="Allows to Generate an Analytic Ledger for accounts with moves. Available when Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
-        'journal_ledger': fields.boolean('Journal Ledger', help="Allows to Generate an Journal Ledger for accounts with moves. Available when Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
-        'partner_balance': fields.boolean('Partner Balance', help="Allows to "
-                                          "Generate a Partner Balance for accounts with moves. Available when "
-                                          "Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
-        'tot_check': fields.boolean('Summarize?', help='Checking will add a new line at the end of the Report which will Summarize Columns in Report'),
-        'lab_str': fields.char('Description', help='Description for the Summary', size=128),
+		'analytic_ledger': fields.boolean('Analytic Ledger', help="Allows to Generate an Analytic Ledger for accounts with moves. Available when Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
+		'journal_ledger': fields.boolean('Journal Ledger', help="Allows to Generate an Journal Ledger for accounts with moves. Available when Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
+		'partner_balance': fields.boolean('Partner Balance', help="Allows to "
+										  "Generate a Partner Balance for accounts with moves. Available when "
+										  "Balance Sheet and 'Initial | Debit | Credit | YTD' are selected"),
+		'tot_check': fields.boolean('Summarize?', help='Checking will add a new line at the end of the Report which will Summarize Columns in Report'),
+		'lab_str': fields.char('Description', help='Description for the Summary', size=128),
 
-        'target_move': fields.selection([('posted', 'All Posted Entries'),
-                                        ('all', 'All Entries'),
-                                         ], 'Entries to Include', required=True,
-                                        help='Print All Accounting Entries or just Posted Accounting Entries'),
-        #~ Deprecated fields
-        'filter': fields.selection([('bydate', 'By Date'), ('byperiod', 'By Period'), ('all', 'By Date and Period'), ('none', 'No Filter')], 'Date/Period Filter'),
-        'date_to': fields.date('End date'),
-        'date_from': fields.date('Start date'),
-    }
+		'target_move': fields.selection([('posted', 'All Posted Entries'),
+										('all', 'All Entries'),
+										 ], 'Entries to Include', required=True,
+										help='Print All Accounting Entries or just Posted Accounting Entries'),
+		#~ Deprecated fields
+		'filter': fields.selection([('bydate', 'By Date'), ('byperiod', 'By Period'), ('all', 'By Date and Period'), ('none', 'No Filter')], 'Date/Period Filter'),
+		'date_to': fields.date('End date'),
+		'date_from': fields.date('Start date'),
+	}
 
-    _defaults = {
-        'date_from': lambda *a: time.strftime('%Y-%m-%d'),
-        'date_to': lambda *a: time.strftime('%Y-%m-%d'),
-        'filter': lambda *a: 'byperiod',
-        'display_account_level': lambda *a: 0,
-        'inf_type': lambda *a: 'BS',
-        'company_id': lambda self, cr, uid, c: self.pool.get('res.company')._company_default_get(cr, uid, 'account.invoice', context=c),
-        'fiscalyear': lambda self, cr, uid, c: self.pool.get('account.fiscalyear').find(cr, uid),
-        'display_account': lambda *a: 'bal_mov',
-        'columns': lambda *a: 'five',
-        'target_move': 'posted',
-    }
+	_defaults = {
+		'date_from': lambda *a: time.strftime('%Y-%m-%d'),
+		'date_to': lambda *a: time.strftime('%Y-%m-%d'),
+		'filter': lambda *a: 'byperiod',
+		'display_account_level': lambda *a: 0,
+		'inf_type': lambda *a: 'BS',
+		'company_id': lambda self, cr, uid, c: self.pool.get('res.company')._company_default_get(cr, uid, 'account.invoice', context=c),
+		'fiscalyear': lambda self, cr, uid, c: self.pool.get('account.fiscalyear').find(cr, uid),
+		'display_account': lambda *a: 'bal_mov',
+		'columns': lambda *a: 'five',
+		'target_move': 'posted',
+	}
 
-    @api.onchange('inf_type')
-    def onchange_inf_type(self):
-        if self.inf_type != 'BS':
-            self.analytic_ledger = False
-
-
-    @api.onchange('columns', 'fiscalyear', 'periods')       
-    def onchange_columns(self):
-
-        p_obj = self.env["account.period"]
-        go = None
-        all_periods = p_obj.search([('fiscalyear_id', '=', self.fiscalyear.id), ('special', '=', False)])
-
-        if self.periods:
-            s = set(self.periods[0][2])
-            t = set(all_periods)
-            go = self.periods[0][2] and s.issubset(t) or False
-
-        if self.columns != 'four':
-            self.analytic_ledger = False
-
-        if self.columns in ('qtr', 'thirteen'):
-            self.periods = all_periods
-        else:
-            if go:
-                self.periods = periods
-            else:
-                self.periods = []
-    
-    @api.onchange('company_id', 'analytic_ledger')  
-    def onchange_analytic_ledger(self):
-        #bself.env.context.update('company_id' : self.company_id)
-
-        cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
-        self.currency_id = cur_id
-
-    @api.onchange('company_id') 
-    def onchange_company_id(self):
-
-        #context['company_id'] = company_id
-
-        if self.company_id:
-            
-            cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
-            fy_id = self.env['account.fiscalyear'].find()
-            self.fiscalyear = fy_id
-            self.currency_id = cur_id
-            self.account_list = []
-            self.periods = []
-            self.afr_id = None
-
-    @api.onchange('afr_id')     
-    def onchange_afr_id(self):
-
-        if self.afr_id:
-
-            afr_brw = self.env['afr'].browse(self.afr_id.id)
-            self.currency_id = afr_brw.currency_id and afr_brw.currency_id.id or afr_brw.company_id.currency_id.id
-            self.inf_type = afr_brw.inf_type or 'BS'
-            self.columns = afr_brw.columns or 'five'
-            self.display_account = afr_brw.display_account or 'bal_mov'
-            self.display_account_level = afr_brw.display_account_level or 0
-            self.fiscalyear = afr_brw.fiscalyear_id and afr_brw.fiscalyear_id.id
-            self.account_list = [acc.id for acc in afr_brw.account_ids]
-            self.periods = [p.id for p in afr_brw.period_ids]
-            self.analytic_ledger = afr_brw.analytic_ledger or False
-            self.tot_check = afr_brw.tot_check or False
-            self.lab_str = afr_brw.lab_str or _('Write a Description for your Summary Total')
+	@api.onchange('inf_type')
+	def onchange_inf_type(self):
+		if self.inf_type != 'BS':
+			self.analytic_ledger = False
 
 
-    def _get_defaults(self, cr, uid, data, context=None):
-        if context is None:
-            context = {}
-        user = pooler.get_pool(cr.dbname).get(
-            'res.users').browse(cr, uid, uid, context=context)
-        if user.company_id:
-            company_id = user.company_id.id
-        else:
-            company_id = pooler.get_pool(cr.dbname).get(
-                'res.company').search(cr, uid, [('parent_id', '=', False)])[0]
-        data['form']['company_id'] = company_id
-        fiscalyear_obj = pooler.get_pool(cr.dbname).get('account.fiscalyear')
-        data['form']['fiscalyear'] = fiscalyear_obj.find(cr, uid)
-        data['form']['context'] = context
-        return data['form']
+	@api.onchange('columns', 'fiscalyear', 'periods')       
+	def onchange_columns(self):
 
-    def _check_state(self, cr, uid, data, context=None):
-        if context is None:
-            context = {}
-        if data['form']['filter'] == 'bydate':
-            self._check_date(cr, uid, data, context)
-        return data['form']
+		p_obj = self.env["account.period"]
+		go = None
+		all_periods = p_obj.search([('fiscalyear_id', '=', self.fiscalyear.id), ('special', '=', False)])
 
-    def _check_date(self, cr, uid, data, context=None):
-        if context is None:
-            context = {}
+		if self.periods:
+			s = set(self.periods[0][2])
+			t = set(all_periods)
+			go = self.periods[0][2] and s.issubset(t) or False
 
-        if data['form']['date_from'] > data['form']['date_to']:
-            raise osv.except_osv(_('Error !'), (
-                'La fecha final debe ser mayor a la inicial'))
+		if self.columns != 'four':
+			self.analytic_ledger = False
 
-        sql = """SELECT f.id, f.date_start, f.date_stop
-            FROM account_fiscalyear f
-            WHERE '%s' = f.id """ % (data['form']['fiscalyear'])
-        cr.execute(sql)
-        res = cr.dictfetchall()
+		if self.columns in ('qtr', 'thirteen'):
+			self.periods = all_periods
+		else:
+			if go:
+				self.periods = periods
+			else:
+				self.periods = []
+	
+	@api.onchange('company_id', 'analytic_ledger')  
+	def onchange_analytic_ledger(self):
+		self = self.with_context(company_id=self.company_id.id)
+		cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
+		self.currency_id = cur_id
 
-        if res:
-            if (data['form']['date_to'] > res[0]['date_stop'] or data['form']['date_from'] < res[0]['date_start']):
-                raise osv.except_osv(_('UserError'), 'Las fechas deben estar entre %s y %s' % (
-                    res[0]['date_start'], res[0]['date_stop']))
-            else:
-                return 'report'
-        else:
-            raise osv.except_osv(_('UserError'), 'No existe periodo fiscal')
+	@api.onchange('company_id') 
+	def onchange_company_id(self):
 
-    def period_span(self, cr, uid, ids, fy_id, context=None):
-        if context is None:
-            context = {}
-        ap_obj = self.pool.get('account.period')
-        fy_id = fy_id and type(fy_id) in (list, tuple) and fy_id[0] or fy_id
-        if not ids:
-            #~ No hay periodos
-            return ap_obj.search(cr, uid, [('fiscalyear_id', '=', fy_id), ('special', '=', False)], order='date_start asc')
+		#context['company_id'] = company_id
+		self = self.with_context(company_id=self.company_id.id)
+		_logger.info(self.env.context)
+		if self.company_id:
+			
+			cur_id = self.env['res.company'].browse(self.company_id.id).currency_id.id
+			fy_id = self.env['account.fiscalyear'].find()
+			self.fiscalyear = fy_id
+			self.currency_id = cur_id
+			self.account_list = []
+			self.periods = []
+			self.afr_id = None
 
-        ap_brws = ap_obj.browse(cr, uid, ids, context=context)
-        date_start = min([period.date_start for period in ap_brws])
-        date_stop = max([period.date_stop for period in ap_brws])
+	@api.onchange('afr_id')     
+	def onchange_afr_id(self):
 
-        return ap_obj.search(cr, uid, [('fiscalyear_id', '=', fy_id), ('special', '=', False), ('date_start', '>=', date_start), ('date_stop', '<=', date_stop)], order='date_start asc')
+		if self.afr_id:
 
-    def print_report(self, cr, uid, ids, data, context=None):
-        if context is None:
-            context = {}
+			afr_brw = self.env['afr'].browse(self.afr_id.id)
+			self.currency_id = afr_brw.currency_id and afr_brw.currency_id.id or afr_brw.company_id.currency_id.id
+			self.inf_type = afr_brw.inf_type or 'BS'
+			self.columns = afr_brw.columns or 'five'
+			self.display_account = afr_brw.display_account or 'bal_mov'
+			self.display_account_level = afr_brw.display_account_level or 0
+			self.fiscalyear = afr_brw.fiscalyear_id and afr_brw.fiscalyear_id.id
+			self.account_list = [acc.id for acc in afr_brw.account_ids]
+			self.periods = [p.id for p in afr_brw.period_ids]
+			self.analytic_ledger = afr_brw.analytic_ledger or False
+			self.tot_check = afr_brw.tot_check or False
+			self.lab_str = afr_brw.lab_str or _('Write a Description for your Summary Total')
 
-        data = {}
-        data['ids'] = context.get('active_ids', [])
-        data['model'] = context.get('active_model', 'ir.ui.menu')
-        data['form'] = self.read(cr, uid, ids[0])
 
-        if data['form']['filter'] == 'byperiod':
-            del data['form']['date_from']
-            del data['form']['date_to']
+	def _get_defaults(self, cr, uid, data, context=None):
+		if context is None:
+			context = {}
+		user = pooler.get_pool(cr.dbname).get(
+			'res.users').browse(cr, uid, uid, context=context)
+		if user.company_id:
+			company_id = user.company_id.id
+		else:
+			company_id = pooler.get_pool(cr.dbname).get(
+				'res.company').search(cr, uid, [('parent_id', '=', False)])[0]
+		data['form']['company_id'] = company_id
+		fiscalyear_obj = pooler.get_pool(cr.dbname).get('account.fiscalyear')
+		data['form']['fiscalyear'] = fiscalyear_obj.find(cr, uid)
+		data['form']['context'] = context
+		return data['form']
 
-            data['form']['periods'] = self.period_span(cr, uid, data[
-                                                       'form']['periods'], data['form']['fiscalyear'])
+	def _check_state(self, cr, uid, data, context=None):
+		if context is None:
+			context = {}
+		if data['form']['filter'] == 'bydate':
+			self._check_date(cr, uid, data, context)
+		return data['form']
 
-        elif data['form']['filter'] == 'bydate':
-            self._check_date(cr, uid, data)
-            del data['form']['periods']
-        elif data['form']['filter'] == 'none':
-            del data['form']['date_from']
-            del data['form']['date_to']
-            del data['form']['periods']
-        else:
-            self._check_date(cr, uid, data)
-            lis2 = str(data['form']['periods']).replace(
-                "[", "(").replace("]", ")")
-            sqlmm = """select min(p.date_start) as inicio, max(p.date_stop) as fin
-            from account_period p
-            where p.id in %s""" % lis2
-            cr.execute(sqlmm)
-            minmax = cr.dictfetchall()
-            if minmax:
-                if (data['form']['date_to'] < minmax[0]['inicio']) or (data['form']['date_from'] > minmax[0]['fin']):
-                    raise osv.except_osv(_('Error !'), _(
-                        'La interseccion entre el periodo y fecha es vacio'))
+	def _check_date(self, cr, uid, data, context=None):
+		if context is None:
+			context = {}
 
-        if data['form']['columns'] == 'one':
-            name = 'afr.1cols'
-        if data['form']['columns'] == 'two':
-            name = 'afr.2cols'
-        if data['form']['columns'] == 'four':
-            if data['form']['analytic_ledger'] and data['form']['inf_type'] == 'BS':
-                name = 'afr.analytic.ledger'
-            elif data['form']['journal_ledger'] and data['form']['inf_type'] == 'BS':
-                name = 'afr.journal.ledger'
-            elif data['form']['partner_balance'] and data['form']['inf_type'] == 'BS':
-                name = 'afr.partner.balance'
-            else:
-                name = 'afr.4cols'
-        if data['form']['columns'] == 'five':
-            name = 'afr.5cols'
-        if data['form']['columns'] == 'qtr':
-            name = 'afr.qtrcols'
-        if data['form']['columns'] == 'thirteen':
-            name = 'afr.13cols'
+		if data['form']['date_from'] > data['form']['date_to']:
+			raise osv.except_osv(_('Error !'), (
+				'La fecha final debe ser mayor a la inicial'))
 
-        return {'type': 'ir.actions.report.xml', 'report_name': name, 'datas': data}
+		sql = """SELECT f.id, f.date_start, f.date_stop
+			FROM account_fiscalyear f
+			WHERE '%s' = f.id """ % (data['form']['fiscalyear'])
+		cr.execute(sql)
+		res = cr.dictfetchall()
+
+		if res:
+			if (data['form']['date_to'] > res[0]['date_stop'] or data['form']['date_from'] < res[0]['date_start']):
+				raise osv.except_osv(_('UserError'), 'Las fechas deben estar entre %s y %s' % (
+					res[0]['date_start'], res[0]['date_stop']))
+			else:
+				return 'report'
+		else:
+			raise osv.except_osv(_('UserError'), 'No existe periodo fiscal')
+
+	def period_span(self, cr, uid, ids, fy_id, context=None):
+		if context is None:
+			context = {}
+		ap_obj = self.pool.get('account.period')
+		fy_id = fy_id and type(fy_id) in (list, tuple) and fy_id[0] or fy_id
+		if not ids:
+			#~ No hay periodos
+			return ap_obj.search(cr, uid, [('fiscalyear_id', '=', fy_id), ('special', '=', False)], order='date_start asc')
+
+		ap_brws = ap_obj.browse(cr, uid, ids, context=context)
+		date_start = min([period.date_start for period in ap_brws])
+		date_stop = max([period.date_stop for period in ap_brws])
+
+		return ap_obj.search(cr, uid, [('fiscalyear_id', '=', fy_id), ('special', '=', False), ('date_start', '>=', date_start), ('date_stop', '<=', date_stop)], order='date_start asc')
+
+	def print_report(self, cr, uid, ids, data, context=None):
+		if context is None:
+			context = {}
+
+		data = {}
+		data['ids'] = context.get('active_ids', [])
+		data['model'] = context.get('active_model', 'ir.ui.menu')
+		data['form'] = self.read(cr, uid, ids[0])
+
+		if data['form']['filter'] == 'byperiod':
+			del data['form']['date_from']
+			del data['form']['date_to']
+
+			data['form']['periods'] = self.period_span(cr, uid, data[
+													   'form']['periods'], data['form']['fiscalyear'])
+
+		elif data['form']['filter'] == 'bydate':
+			self._check_date(cr, uid, data)
+			del data['form']['periods']
+		elif data['form']['filter'] == 'none':
+			del data['form']['date_from']
+			del data['form']['date_to']
+			del data['form']['periods']
+		else:
+			self._check_date(cr, uid, data)
+			lis2 = str(data['form']['periods']).replace(
+				"[", "(").replace("]", ")")
+			sqlmm = """select min(p.date_start) as inicio, max(p.date_stop) as fin
+			from account_period p
+			where p.id in %s""" % lis2
+			cr.execute(sqlmm)
+			minmax = cr.dictfetchall()
+			if minmax:
+				if (data['form']['date_to'] < minmax[0]['inicio']) or (data['form']['date_from'] > minmax[0]['fin']):
+					raise osv.except_osv(_('Error !'), _(
+						'La interseccion entre el periodo y fecha es vacio'))
+
+		if data['form']['columns'] == 'one':
+			name = 'afr.1cols'
+		if data['form']['columns'] == 'two':
+			name = 'afr.2cols'
+		if data['form']['columns'] == 'four':
+			if data['form']['analytic_ledger'] and data['form']['inf_type'] == 'BS':
+				name = 'afr.analytic.ledger'
+			elif data['form']['journal_ledger'] and data['form']['inf_type'] == 'BS':
+				name = 'afr.journal.ledger'
+			elif data['form']['partner_balance'] and data['form']['inf_type'] == 'BS':
+				name = 'afr.partner.balance'
+			else:
+				name = 'afr.4cols'
+		if data['form']['columns'] == 'five':
+			name = 'afr.5cols'
+		if data['form']['columns'] == 'qtr':
+			name = 'afr.qtrcols'
+		if data['form']['columns'] == 'thirteen':
+			name = 'afr.13cols'
+
+		return {'type': 'ir.actions.report.xml', 'report_name': name, 'datas': data}
 
 wizard_report()
