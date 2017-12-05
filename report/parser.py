@@ -734,17 +734,22 @@ class account_balance(report_sxw.rml_parse):
 						continue
 					
 					_logger.info(acc_id)
-					_logger.info(child_id.id)
-						
+					_logger.info(all_account.get(
+						child_id.id))
+
 					dict_not_black.get(acc_id)['debit'] += all_account.get(
-						child_id.id).get('debit')
+						child_id.id).get('debit') if all_account.get(
+						child_id.id) else 0
 					dict_not_black.get(acc_id)['credit'] += all_account.get(
-						child_id.id).get('credit')
+						child_id.id).get('credit') if all_account.get(
+						child_id.id) else 0
 					dict_not_black.get(acc_id)['balance'] += all_account.get(
-						child_id.id).get('balance')
+						child_id.id).get('balance') if all_account.get(
+						child_id.id) else 0
 					if form['inf_type'] == 'BS':
 						dict_not_black.get(acc_id)['balanceinit'] += all_account.get(
-							child_id.id).get('balanceinit')
+						child_id.id).get('balanceinit') if all_account.get(
+						child_id.id) else 0
 				all_account[acc_id] = dict_not_black[acc_id]
 
 			if p_act == limit - 1:
