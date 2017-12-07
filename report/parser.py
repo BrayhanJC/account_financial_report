@@ -412,6 +412,7 @@ class account_balance(report_sxw.rml_parse):
 						ids2.append(aa_brw.id)
 					else:
 						ids2.append([aa_brw.id, True, True, aa_brw])
+			
 			return ids2
 
 		#######################################################################
@@ -516,11 +517,19 @@ class account_balance(report_sxw.rml_parse):
 		################################################################
 		# Get the accounts                                             #
 		################################################################
+
+
 		all_account_ids = _get_children_and_consol(
 			self.cr, self.uid, account_ids, 100, self.context)
 
+
+		_logger.info("all_account_ids")
+		_logger.info(len(all_account_ids))	
+
 		account_ids = _get_children_and_consol(self.cr, self.uid, account_ids, form[
 											   'display_account_level'] and form['display_account_level'] or 100, self.context)
+
+
 
 		credit_account_ids = _get_children_and_consol(
 			self.cr, self.uid, credit_account_ids, 100, self.context, change_sign=True)
@@ -608,8 +617,10 @@ class account_balance(report_sxw.rml_parse):
 		acc_cons_ids = account_obj.search(self.cr, self.uid, ([('id', 'in', [
 			i[0] for i in all_account_ids]), ('type', 'in', ('consolidation',))]))
 
+		_logger.info(acc_cons_ids)
 		account_consol_ids = acc_cons_ids and account_obj._get_children_and_consol(
 			self.cr, self.uid, acc_cons_ids) or []
+
 
 		account_black_ids += account_obj.search(self.cr, self.uid, (
 			[('id', 'in', account_consol_ids),
@@ -618,11 +629,16 @@ class account_balance(report_sxw.rml_parse):
 
 		account_black_ids = list(set(account_black_ids))
 
+		_logger.info(account_black_ids)
+		
+
 		c_account_not_black_ids = account_obj.search(self.cr, self.uid, ([
 			('id', 'in',
 			 account_consol_ids),
 			('type', '=', 'view')]))
 		delete_cons = False
+		
+
 		if c_account_not_black_ids:
 			delete_cons = set(account_not_black_ids) & set(
 				c_account_not_black_ids) and True or False
@@ -632,17 +648,21 @@ class account_balance(report_sxw.rml_parse):
 		# This could be done quickly with a sql sentence
 		account_not_black = account_obj.browse(
 			self.cr, self.uid, account_not_black_ids)
+
+		_logger.info(account_not_black)
 		#account_not_black.sort(key=lambda x: x.level)
 		#account_not_black.reverse()
 		account_not_black = sorted(account_not_black, reverse=True)
-		account_not_black_ids = [i.id for i in account_not_black]
+		account_not_black_ids = [i.id for i in reversed(account_not_black)]
 
 		c_account_not_black = account_obj.browse(
 			self.cr, self.uid, c_account_not_black_ids)
+
+
 		#c_account_not_black.sort(key=lambda x: x.level)
 		#c_account_not_black.reverse()
 		c_account_not_black = sorted(c_account_not_black, reverse=True)
-		c_account_not_black_ids = [i.id for i in c_account_not_black]
+		c_account_not_black_ids = [i.id for i in reversed(c_account_not_black)]
 
 		if delete_cons:
 			account_not_black_ids = c_account_not_black_ids + \
@@ -654,7 +674,7 @@ class account_balance(report_sxw.rml_parse):
 			#acc_cons_brw.sort(key=lambda x: x.level)
 			#acc_cons_brw.reverse()
 			acc_cons_brw = sorted(acc_cons_brw, reverse=True)
-			acc_cons_ids = [i.id for i in acc_cons_brw]
+			acc_cons_ids = [i.id for i in reversed(acc_cons_brw)]
 
 			account_not_black_ids = c_account_not_black_ids + \
 				acc_cons_ids + account_not_black_ids
@@ -732,11 +752,6 @@ class account_balance(report_sxw.rml_parse):
 				for child_id in acc_childs:
 					if child_id.type == 'consolidation' and delete_cons:
 						continue
-					
-					_logger.info(acc_id)
-					_logger.info(all_account.get(
-						child_id.id))
-
 					dict_not_black.get(acc_id)['debit'] += all_account.get(
 						child_id.id).get('debit') if all_account.get(
 						child_id.id) else 0
